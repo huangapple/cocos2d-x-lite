@@ -2,7 +2,7 @@
 
 #include "../config.hpp"
 
-#ifdef SCRIPT_ENGINE_CHAKRACORE
+#if SCRIPT_ENGINE_TYPE == SCRIPT_ENGINE_CHAKRACORE
 
 #include "Base.h"
 #include <chrono>
@@ -115,11 +115,13 @@ namespace se {
 
         void clearException();
 
-        using ExceptionCallback = std::function<void(const char*)>;
+        using ExceptionCallback = std::function<void(const char*, const char*, const char*)>; // location, message, stack
 
         void setExceptionCallback(const ExceptionCallback& cb);
 
         const std::chrono::steady_clock::time_point& getStartTime() const { return _startTime; }
+        void enableDebugger(unsigned int port = 5086);
+        void mainLoopUpdate();
 
         void _retainScriptObject(void* owner, void* target);
         void _releaseScriptObject(void* owner, void* target);
@@ -137,8 +139,18 @@ namespace se {
         bool _setNodeEventListener(NodeEventListener listener);
 
     private:
+        struct ExceptionInfo
+        {
+            std::string location;
+            std::string message;
+            std::string stack;
 
-        std::string formatException(JsValueRef exception);
+            bool isValid() const
+            {
+                return !message.empty();
+            }
+        };
+        ExceptionInfo formatException(JsValueRef exception);
 
         JsRuntimeHandle _rt;
         JsContextRef _cx;
@@ -148,6 +160,7 @@ namespace se {
         bool _isValid;
         bool _isInCleanup;
         bool _isGarbageCollecting;
+        bool _isErrorHandleWorking;
         unsigned _currentSourceContext;
         NodeEventListener _nodeEventListener;
 
@@ -167,6 +180,6 @@ namespace se {
 
  } // namespace se {
 
-#endif // SCRIPT_ENGINE_CHAKRACORE
+#endif // #if SCRIPT_ENGINE_TYPE == SCRIPT_ENGINE_CHAKRACORE
 
 

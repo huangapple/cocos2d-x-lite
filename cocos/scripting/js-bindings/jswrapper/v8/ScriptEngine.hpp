@@ -2,7 +2,7 @@
 
 #include "../config.hpp"
 
-#ifdef SCRIPT_ENGINE_V8
+#if SCRIPT_ENGINE_TYPE == SCRIPT_ENGINE_V8
 
 #include "Base.h"
 #include "../Value.hpp"
@@ -135,10 +135,13 @@ namespace se {
 
         void clearException();
 
-        using ExceptionCallback = std::function<void(const char*)>;
+        using ExceptionCallback = std::function<void(const char*, const char*, const char*)>; // location, message, stack
         void setExceptionCallback(const ExceptionCallback& cb);
 
         const std::chrono::steady_clock::time_point& getStartTime() const { return _startTime; }
+
+        void enableDebugger(unsigned int port = 5086);
+        void mainLoopUpdate();
 
         void _retainScriptObject(void* owner, void* target);
         void _releaseScriptObject(void* owner, void* target);
@@ -159,9 +162,9 @@ namespace se {
     private:
         static void privateDataFinalize(void* nativeObj);
 
-        static void myFatalErrorCallback(const char* location, const char* message);
-        static void myOOMErrorCallback(const char* location, bool is_heap_oom);
-        static void myMessageCallback(v8::Local<v8::Message> message, v8::Local<v8::Value> data);
+        static void onFatalErrorCallback(const char* location, const char* message);
+        static void onOOMErrorCallback(const char* location, bool is_heap_oom);
+        static void onMessageCallback(v8::Local<v8::Message> message, v8::Local<v8::Value> data);
 
         v8::Platform* _platform;
         v8::Isolate* _isolate;
@@ -177,6 +180,7 @@ namespace se {
         bool _isValid;
         bool _isGarbageCollecting;
         bool _isInCleanup;
+        bool _isErrorHandleWorking;
         NodeEventListener _nodeEventListener;
 
         FileOperationDelegate _fileOperationDelegate;
@@ -200,4 +204,4 @@ namespace se {
 
 } // namespace se {
 
-#endif // SCRIPT_ENGINE_V8
+#endif // #if SCRIPT_ENGINE_TYPE == SCRIPT_ENGINE_V8

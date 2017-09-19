@@ -2,7 +2,7 @@
 
 #include "../config.hpp"
 
-#ifdef SCRIPT_ENGINE_JSC
+#if SCRIPT_ENGINE_TYPE == SCRIPT_ENGINE_JSC
 
 #include "Base.h"
 
@@ -194,7 +194,7 @@ namespace se {
          */
         void clearException();
 
-        using ExceptionCallback = std::function<void(const char*)>;
+        using ExceptionCallback = std::function<void(const char*, const char*, const char*)>; // location, message, stack
 
         /**
          *  @brief Sets the callback function while an exception is fired.
@@ -206,6 +206,17 @@ namespace se {
          *  @brief Gets the start time of script engine.
          */
         const std::chrono::steady_clock::time_point& getStartTime() const { return _startTime; }
+
+        /**
+         *  @brief Enables JavaScript debugger
+         *  @param[in] port The port of debugger server will use.
+         */
+        void enableDebugger(unsigned int port = 5086);
+
+        /**
+         *  @brief Main loop update trigger, it's need to invoked in main thread every frame.
+         */
+        void mainLoopUpdate();
 
         // Private API used in wrapper
         void _retainScriptObject(void* owner, void* target);
@@ -233,7 +244,26 @@ namespace se {
         ScriptEngine();
         ~ScriptEngine();
 
-        std::string _formatException(JSValueRef exception);
+        struct ExceptionInfo
+        {
+            std::string location;
+            std::string message;
+            std::string stack;
+
+            // For compatibility
+            std::string filePath;
+            uint32_t lineno;
+
+            ExceptionInfo()
+            : lineno(0)
+            {}
+
+            bool isValid() const
+            {
+                return !message.empty();
+            }
+        };
+        ExceptionInfo _formatException(JSValueRef exception);
 
         JSGlobalContextRef _cx;
 
@@ -242,6 +272,7 @@ namespace se {
         bool _isGarbageCollecting;
         bool _isValid;
         bool _isInCleanup;
+        bool _isErrorHandleWorking;
         NodeEventListener _nodeEventListener;
 
         FileOperationDelegate _fileOperationDelegate;
@@ -260,6 +291,6 @@ namespace se {
 
  } // namespace se {
 
-#endif // SCRIPT_ENGINE_JSC
+#endif // #if SCRIPT_ENGINE_TYPE == SCRIPT_ENGINE_JSC
 
 
